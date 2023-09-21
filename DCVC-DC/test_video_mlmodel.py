@@ -132,6 +132,7 @@ def init_models(args):
     model_dir = 'models_yuv' if args['dist_in_yuv420'] else 'models'
     os.makedirs(model_dir, exist_ok=True)
 
+    sample_q_index = torch.tensor(0)
     model_key = get_i_frame_model_key(args)
     if args['test_mlmodel']:
         model_name = f'intra_no_ar_{model_key}.mlpackage'
@@ -139,19 +140,24 @@ def init_models(args):
         if os.path.exists(model_path):
             i_frame_models[model_key] = model_path
         else:
-            traced_model = torch.jit.trace(i_frame_net, x_padded, check_trace=False, strict=False)
+            
+            traced_model = torch.jit.trace(i_frame_net, (x_padded, sample_q_index), check_trace=False, strict=False)
             job = hub.submit_profile_job(model=traced_model,
                                   name=model_name,
                                   device=device,
-                                  input_shapes={ 'x':x_padded.shape },
+                                  input_shapes={ 'x':x_padded.shape, 'q_index':sample_q_index.shape },
                                   options="--enable_mlpackage")
             with tempfile.TemporaryDirectory() as tmodel_dir:
                 downloaded_model_path = job.download_target_model(tmodel_dir)
                 extracted_model_path = unzip_model(downloaded_model_path, tmodel_dir)
                 shutil.copytree(extracted_model_path, model_path)
                 i_frame_models[model_key] = model_path
-    else:
-        i_frame_models[model_key] = i_frame_net
+    else:        
+        i_frame_models[model_key] = i_frame_net        
+        traced_model_tmp = torch.jit.trace(i_frame_net, (x_padded, sample_q_index), check_trace=False, strict=False)
+        #traced_model_tmp.save("/mnt/tmp/data/data/out/i-farme-traced.pt")
+        #loaded_model = torch.jit.load("/mnt/tmp/data/data/out/i-farme-traced.pt")
+        print(traced_model_tmp.graph)
 
     q_index = args['p_frame_q_index']
     if not args['force_intra']:

@@ -105,13 +105,15 @@ class IntraNoAR(CompressionModel):
         self.q_scale_dec_fine = None
 
     def get_q_for_inference(self, q_in_ckpt, q_index):
-        q_scale_enc = self.q_scale_enc[:, 0, 0, 0] if q_in_ckpt else self.q_scale_enc_fine
+        q_scale_enc = self.q_scale_enc[:, 0, 0, 0] if q_in_ckpt else self.q_scale_enc_fine        
         curr_q_enc = self.get_curr_q(q_scale_enc, self.q_basic_enc, q_index=q_index)
         q_scale_dec = self.q_scale_dec[:, 0, 0, 0] if q_in_ckpt else self.q_scale_dec_fine
         curr_q_dec = self.get_curr_q(q_scale_dec, self.q_basic_dec, q_index=q_index)
         return curr_q_enc, curr_q_dec
 
-    def forward(self, x, q_in_ckpt=False, q_index=None):
+    #def forward(self, x, q_in_ckpt=False, q_index=None):
+    # q_index to tensor
+    def forward(self, x, q_in_ckpt=False, q_index=torch.tensor(0)):
         curr_q_enc, curr_q_dec = self.get_q_for_inference(q_in_ckpt, q_index)
 
         y = self.enc(x, curr_q_enc)
