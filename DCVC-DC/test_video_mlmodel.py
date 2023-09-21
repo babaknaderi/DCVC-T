@@ -283,12 +283,12 @@ def run_test(args):
                     model = i_frame_models[get_i_frame_model_key(args)]
                     model = ct.models.MLModel(model, compute_units=compute_unit)
                     # q_index pass here as tensor
-                    mlmodel_results = model.predict({'x':x_padded})
+                    mlmodel_results = model.predict({'x':x_padded, 'q_index':q_index_t})
                     results_xhat, results_bit = mlmodel_results['output_0'], mlmodel_results['output_1']
                 else:
                     model = i_frame_models[get_i_frame_model_key(args)]
                     # q_index pass here as tensor // same for video mdoel
-                    results_xhat, results_bit, *_ = model((x_padded, q_index_t))
+                    results_xhat, results_bit, *_ = model(x_padded, q_index=q_index_t)
                 results_bit *= (padded_ht * padded_wt)
                 dpb = {
                     "ref_frame": results_xhat,
