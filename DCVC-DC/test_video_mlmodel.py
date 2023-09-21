@@ -288,7 +288,7 @@ def run_test(args):
                 else:
                     model = i_frame_models[get_i_frame_model_key(args)]
                     # q_index pass here as tensor // same for video mdoel
-                    results_xhat, results_bit, *_ = model(x_padded, q_index_t)
+                    results_xhat, results_bit, *_ = model((x_padded, q_index_t))
                 results_bit *= (padded_ht * padded_wt)
                 dpb = {
                     "ref_frame": results_xhat,

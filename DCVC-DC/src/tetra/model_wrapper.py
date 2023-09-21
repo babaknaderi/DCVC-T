@@ -3,9 +3,10 @@ from ..models.video_model import DMC
 from ..utils.stream_helper import get_state_dict
 
 import torch.nn as nn
+from torch import tensor
 
 ## IntraNoAr wrapper
-
+"""
 class IntraNoAR_wrapper(nn.Module):
     def __init__(self, model_path, mode="forward", N=256, anchor_num=4, ec_thread=False, stream_part=1, inplace=False, q_in_ckpt=False, q_index=0):
         super().__init__()
@@ -22,7 +23,23 @@ class IntraNoAR_wrapper(nn.Module):
     def forward(self, x):
         out_dict = self.model(x, q_in_ckpt=self.q_in_ckpt, q_index=self.q_index)
         return out_dict["x_hat"], out_dict["bit"], out_dict["bpp"], out_dict["bpp_y"], out_dict["bpp_z"]
+"""
+class IntraNoAR_wrapper(nn.Module):
+    def __init__(self, model_path, mode="forward", N=256, anchor_num=4, ec_thread=False, stream_part=1, inplace=False, q_in_ckpt=False):
+        super().__init__()
+        self.model = IntraNoAR(N, anchor_num, ec_thread, stream_part, inplace)
+        state_dict = get_state_dict(model_path)
+        self.model.load_state_dict(state_dict)
+        self.model.eval()
+        assert mode in { "forward", "encoder", "decoder"}
+        self.mode = mode
+        self.torch_output_order = None
+        self.q_in_ckpt = q_in_ckpt
+        #self.q_index = q_index
 
+    def forward(self, x, q_index):
+        out_dict = self.model(x, q_in_ckpt=self.q_in_ckpt, q_index=q_index)
+        return out_dict["x_hat"], out_dict["bit"], out_dict["bpp"], out_dict["bpp_y"], out_dict["bpp_z"]
 
 # TODO: IntraNoAR encoder
 # Please update forward pass here to mimic how encoder from image_model.py
