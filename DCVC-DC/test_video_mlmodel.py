@@ -60,6 +60,7 @@ def parse_args():
     parser.add_argument('--output_path', type=str, required=True)
     parser.add_argument('--verbose', type=int, default=0)
     parser.add_argument('--model_size', type=str, default="360p")
+    # false to run on GPU
     parser.add_argument('--test_mlmodel', action='store_true')
     parser.add_argument('--mlmodel_compute_unit', type=str, default="cpu")
     parser.set_defaults(test_mlmodel=False)
@@ -113,8 +114,10 @@ def init_models(args):
 
     input_shape = shape_map[model_size]
 
+    #i_frame_net = IntraNoAR_wrapper(model_path=args['i_frame_model_path'], ec_thread=args["ec_thread"],
+    #    stream_part=args["stream_part_i"], inplace=False, q_in_ckpt=q_in_ckpt, q_index=q_index)
     i_frame_net = IntraNoAR_wrapper(model_path=args['i_frame_model_path'], ec_thread=args["ec_thread"],
-        stream_part=args["stream_part_i"], inplace=False, q_in_ckpt=q_in_ckpt, q_index=q_index)
+        stream_part=args["stream_part_i"], inplace=False, q_in_ckpt=q_in_ckpt)
     i_frame_net.eval()
 
     x = torch.rand(input_shape)
@@ -233,7 +236,8 @@ def run_test(args):
     # device = 'cpu'
     # if not args['test_mlmodel']:
     #     device = next(i_frame_models.values()[0]).device
-
+    print(args['i_frame_q_index'])
+    q_index_t = torch.tensor(args['i_frame_q_index'])
     with torch.no_grad():
         for frame_idx in range(frame_num):
             frame_start_time = time.time()
@@ -278,11 +282,13 @@ def run_test(args):
                 if args['test_mlmodel']:
                     model = i_frame_models[get_i_frame_model_key(args)]
                     model = ct.models.MLModel(model, compute_units=compute_unit)
+                    # q_index pass here as tensor
                     mlmodel_results = model.predict({'x':x_padded})
                     results_xhat, results_bit = mlmodel_results['output_0'], mlmodel_results['output_1']
                 else:
                     model = i_frame_models[get_i_frame_model_key(args)]
-                    results_xhat, results_bit, *_ = model(x_padded)
+                    # q_index pass here as tensor // same for video mdoel
+                    results_xhat, results_bit, *_ = model(x_padded, q_index_t)
                 results_bit *= (padded_ht * padded_wt)
                 dpb = {
                     "ref_frame": results_xhat,
@@ -369,7 +375,10 @@ def run_test(args):
         avg_bpp = sum(bits) / len(bits) / pic_width / pic_height
         avg_psnr = sum(psnrs) / len(psnrs)
         folder_name = f"{args['rate_idx']}_{avg_bpp:.4f}_{avg_psnr:.4f}"
-        os.rename(args['recon_path'], args['recon_path'] + f'/../{folder_name}')
+        # get the parent directory of recon_path
+        parent = os.path.dirname(args['recon_path'])
+        new_dir = os.path.join(parent, folder_name)
+        os.rename(args['recon_path'], new_dir)
 
     test_time = time.time() - start_time
     if verbose >= 1 and p_frame_number > 0:

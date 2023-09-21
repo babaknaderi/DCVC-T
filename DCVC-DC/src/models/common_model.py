@@ -31,8 +31,11 @@ class CompressionModel(nn.Module):
 
     def quant(self, x):
         return torch.round(x)
-
-    def get_curr_q(self, q_scale, q_basic, q_index=None):
+    #elf.get_curr_q(q_scale_enc, self.q_basic_enc, q_index=q_index)
+    def get_curr_q(self, q_scale, q_basic, q_index=torch.tensor(0)):
+        # check if q_index is a tensor
+        if not isinstance(q_index, torch.Tensor):
+            q_index = torch.tensor(q_index)
         q_scale = q_scale[q_index]
         return q_basic * q_scale
 
