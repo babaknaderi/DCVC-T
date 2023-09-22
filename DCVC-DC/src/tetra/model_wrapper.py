@@ -95,7 +95,7 @@ class IntraNoAR_decoder_wrapper(IntraNoAR_wrapper):
 
 
 ### DMC Wrapper
-
+"""
 class DMC_wrapper(nn.Module):
     def __init__(self, model_path, anchor_num=4, ec_thread=False, stream_part=1, inplace=False, q_in_ckpt=False, q_index=0, frame_idx=0):
         super().__init__()
@@ -115,6 +115,47 @@ class DMC_wrapper(nn.Module):
                 "ref_mv_y": None}
         encoded = self.dmc.forward_one_frame(x, dpb, q_in_ckpt=self.q_in_ckpt, q_index=self.q_index,
                                          frame_idx=self.frame_idx)
+        # output of forward_one_frame
+        # "bpp_mv_y": bpp_mv_y,
+        #         "bpp_mv_z": bpp_mv_z,
+        #         "bpp_y": bpp_y,
+        #         "bpp_z": bpp_z,
+        #         "bpp": bpp,
+        #         "dpb": {
+        #             "ref_frame": x_hat,
+        #             "ref_feature": feature,
+        #             "ref_mv_feature": mv_feature,
+        #             "ref_y": y_hat,
+        #             "ref_mv_y": mv_y_hat,
+        #         },
+        #         "bit": bit,
+        #         "bit_y": bit_y,
+        #         "bit_z": bit_z,
+        #         "bit_mv_y": bit_mv_y,
+        #         "bit_mv_z": bit_mv_z,
+        #         }
+        return encoded["dpb"]["ref_frame"], encoded["bit"], encoded["bpp"]
+"""
+
+class DMC_wrapper(nn.Module):
+    def __init__(self, model_path, anchor_num=4, ec_thread=False, stream_part=1, inplace=False, q_in_ckpt=False):
+        super().__init__()
+        self.dmc = DMC(anchor_num=anchor_num, ec_thread=ec_thread, stream_part=stream_part, inplace=inplace)
+        state_dict = get_state_dict(model_path)
+        self.dmc.load_state_dict(state_dict)
+        self.dmc.eval()
+        self.q_in_ckpt = q_in_ckpt
+        #self.q_index = q_index
+        #self.frame_idx = frame_idx
+
+    def forward(self, x, ref_frame, q_index, frame_idx):
+        dpb = { "ref_frame": ref_frame,
+                "ref_feature": None,
+                "ref_mv_feature": None,
+                "ref_y": None,
+                "ref_mv_y": None}
+        encoded = self.dmc.forward_one_frame(x, dpb, q_in_ckpt=self.q_in_ckpt, q_index=q_index,
+                                         frame_idx=frame_idx)
         # output of forward_one_frame
         # "bpp_mv_y": bpp_mv_y,
         #         "bpp_mv_z": bpp_mv_z,
