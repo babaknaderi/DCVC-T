@@ -82,16 +82,22 @@ def PSNR(input1, input2):
 
 
 def get_i_frame_model_key(args):
+    # not sure if q_in_ckpt needs to be in model name
     q_in_ckpt = args['q_in_ckpt']
-    q_index = args['i_frame_q_index']
+    #q_index = args['i_frame_q_index']
     model_size = args['model_size']
-    return f"{model_size}_{q_in_ckpt}_{q_index}"
+    #return f"{model_size}_{q_in_ckpt}_{q_index}"
+    return f"{model_size}_{q_in_ckpt}"
+
 
 def get_p_frame_model_key(args, frame_index):
+    # not sure if q_in_ckpt needs to be in model name
     q_in_ckpt = args['q_in_ckpt']
-    q_index = args['p_frame_q_index']
+    #q_index = args['p_frame_q_index']
     model_size = args['model_size']
-    return f"{model_size}_{q_in_ckpt}_{q_index}_{frame_index % 4}"
+    #return f"{model_size}_{q_in_ckpt}_{q_index}_{frame_index % 4}"
+    return f"{model_size}_{q_in_ckpt}"
+
 
 def init_models(args):
     """
@@ -105,8 +111,8 @@ def init_models(args):
     p_frame_nets = []
     p_frame_models = {}
 
+    # not sure if it needs to be in model name
     q_in_ckpt = args['q_in_ckpt']
-    q_index = args['i_frame_q_index']
     model_size = args['model_size']
     compute_unit = ct.ComputeUnit.CPU_ONLY
     if args['mlmodel_compute_unit'] == 'npu':
@@ -187,9 +193,7 @@ def init_models(args):
                     job_dict[i] = (model_path, job)
             else:
                 p_frame_models[model_key] = p_frame_net_per_frame
-                traced_model_tmp = torch.jit.trace(p_frame_net_per_frame, (x_padded, x_padded, sample_q_index, torch.tensor(i)), check_trace=False, strict=False)
-                traced_model_tmp.save("/mnt/tmp/data/data/out/p-farme-traced.pt")
-                loaded_model = torch.jit.load("/mnt/tmp/data/data/out/p-farme-traced.pt")
+                traced_model_tmp = torch.jit.trace(p_frame_net_per_frame, (x_padded, x_padded, sample_q_index, torch.tensor(i)), check_trace=False, strict=False)                
                 print(traced_model_tmp.graph)
 
         for index, path_and_job in job_dict.items():
